@@ -1,0 +1,28 @@
+name: Email Automation
+on:
+  workflow_dispatch:   # triggered manually or by API
+
+jobs:
+  send-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run automation
+        env:
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          RANGE_NAME: ${{ secrets.RANGE_NAME }}
+          ATTACHMENT_PATH: ${{ secrets.ATTACHMENT_PATH }}
+          FIXED_CC: ${{ secrets.FIXED_CC }}
+          EMAIL_SUBJECT: ${{ secrets.EMAIL_SUBJECT }}
+          TRACKER_BASE: ${{ secrets.TRACKER_BASE }}
+        run: python main.py
