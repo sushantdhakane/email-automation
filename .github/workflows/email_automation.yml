@@ -1,24 +1,33 @@
-name: Email Automation
+name: Manual Email Automation
+
 on:
-  workflow_dispatch:   # triggered manually or by API
+  workflow_dispatch:  # ✅ manual trigger only
 
 jobs:
-  send-emails:
+  run-automation:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
+    steps:
+      # Checkout your repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up Python (recommended 3.11)
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
+      # Install dependencies
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install python-dotenv
+          pip install python-dotenv  # ensure dotenv available
 
-      - name: Run automation
+      # Run the automation script
+      - name: Run Email Automation
+        run: python main.py
         env:
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
@@ -27,4 +36,3 @@ jobs:
           FIXED_CC: ${{ secrets.FIXED_CC }}
           EMAIL_SUBJECT: ${{ secrets.EMAIL_SUBJECT }}
           TRACKER_BASE: ${{ secrets.TRACKER_BASE }}
-        run: python main.py
