@@ -112,7 +112,13 @@ Co-Founder, Superloopz<br>
 Password for the doc - Fundus</p>
 </body></html>"""
 
-    msg.attach(MIMEText(body, 'html'))
+    # Embed tracking pixel into the email body
+    import uuid
+    cache_buster = uuid.uuid4()
+    tracking_pixel = f'<img src="{TRACKER_BASE}/pixel/{track_id}.png?cb={cache_buster}" width="1" height="1"/>'
+    body_with_pixel = body + tracking_pixel
+
+    msg.attach(MIMEText(body_with_pixel, 'html'))
 
     if os.path.exists(ATTACHMENT_PATH):
         with open(ATTACHMENT_PATH, "rb") as f:
