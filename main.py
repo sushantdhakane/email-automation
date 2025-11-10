@@ -26,25 +26,61 @@ SCOPES = [
 ]
 
 def auth_google_services():
-    """Authenticate using stored credentials.json inside the function."""
+    """Authenticate using stored credentials.json or environment secrets. Supports non-interactive TOKEN_JSON when provided."""
     creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # 1) If a token JSON was provided as an environment secret, use it (headless)
+    token_json = os.getenv("TOKEN_JSON")
+    if token_json:
+        import json as _json
+        try:
+            creds = Credentials.from_authorized_user_info(_json.loads(token_json), SCOPES)
+        except Exception as e:
+            print(f"⚠️ Failed to load TOKEN_JSON: {e}")
+            creds = None
+
+    # 2) Fallback to local token.json file
+    if not creds and os.path.exists('token.json'):
+        try:
+            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        except Exception as e:
+            print(f"⚠️ Failed to load token.json: {e}")
+            creds = None
+
+    # 3) If no valid creds yet, try to create them.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+            except Exception as e:
+                print(f"⚠️ Failed to refresh credentials: {e}")
+                creds = None
+
+        if not creds:
             import json
             creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
             if creds_json:
+                # write a temporary credentials file for the flow
                 with open("credentials_temp.json", "w") as f:
                     f.write(creds_json)
                 flow = InstalledAppFlow.from_client_secrets_file("credentials_temp.json", SCOPES)
+                creds = flow.run_local_server(port=0)
+                # remove temp file after use
+                try:
+                    os.remove("credentials_temp.json")
+                except Exception:
+                    pass
             else:
+                # no credentials in env — attempt to use local file (interactive)
                 flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+                creds = flow.run_local_server(port=0)
+
+        # persist token.json for next runs (if we have credentials)
+        if creds:
+            try:
+                with open('token.json', 'w') as token:
+                    token.write(creds.to_json())
+            except Exception as e:
+                print(f"⚠️ Failed to write token.json: {e}")
 
     sheets_service = build('sheets', 'v4', credentials=creds)
     gmail_service = build('gmail', 'v1', credentials=creds)
@@ -80,7 +116,7 @@ def send_email(gmail_service, name, to_email):
     TRACKER_BASE = os.getenv("TRACKER_BASE")  # Replace with your deployed tracker URL
     track_id = str(uuid.uuid4())
     tracking_pixel = f'<img src="{TRACKER_BASE}/pixel/{track_id}.png" width="1" height="1"/>'
-    
+
     msg = MIMEMultipart()
     msg['to'] = to_email
     msg['cc'] = FIXED_CC
@@ -121,10 +157,15 @@ Password for the doc - Fundus</p>
     msg.attach(MIMEText(body_with_pixel, 'html'))
 
     if os.path.exists(ATTACHMENT_PATH):
-        with open(ATTACHMENT_PATH, "rb") as f:
-            part = MIMEApplication(f.read(), Name=os.path.basename(ATTACHMENT_PATH))
-        part['Content-Disposition'] = f'attachment; filename="{os.path.basename(ATTACHMENT_PATH)}"'
-        msg.attach(part)
+        try:
+            with open(ATTACHMENT_PATH, "rb") as f:
+                part = MIMEApplication(f.read(), Name=os.path.basename(ATTACHMENT_PATH))
+            part['Content-Disposition'] = f'attachment; filename="{os.path.basename(ATTACHMENT_PATH)}"'
+            msg.attach(part)
+        except Exception as e:
+            print(f"⚠️ Failed to attach file {ATTACHMENT_PATH}: {e}")
+    else:
+        print(f"⚠️ Attachment file not found: {ATTACHMENT_PATH}")
 
     raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
     try:
@@ -132,12 +173,15 @@ Password for the doc - Fundus</p>
         gmail_message_id = result.get('id', None)
 
         # Register this email with the tracker
-        requests.post(f"{TRACKER_BASE}/_register_send", json={
-            "track_id": track_id,
-            "recipient_email": to_email,
-            "subject": EMAIL_SUBJECT,
-            "gmail_message_id": gmail_message_id
-        })
+        try:
+            requests.post(f"{TRACKER_BASE}/_register_send", json={
+                "track_id": track_id,
+                "recipient_email": to_email,
+                "subject": EMAIL_SUBJECT,
+                "gmail_message_id": gmail_message_id
+            }, timeout=5)
+        except Exception as tracker_err:
+            print(f"⚠️ Tracker registration failed: {tracker_err}")
 
         print(f"✅ Email sent to {to_email}")
         return True
@@ -146,27 +190,48 @@ Password for the doc - Fundus</p>
         return False
 
 def update_status(sheets_service, df, row_index, status):
-    cell = f"C{row_index+2}"
-    sheets_service.spreadsheets().values().update(
-        spreadsheetId=SPREADSHEET_ID,
-        range=cell,
-        valueInputOption="RAW",
-        body={"values": [[status]]}
-    ).execute()
+    # Determine the column index for 'Status' dynamically to avoid hardcoding column letters
+    try:
+        status_col_idx = df.columns.get_loc('Status') + 1  # 1-based for sheet columns
+        # convert to column letter (supports up to Z)
+        col_letter = chr(64 + status_col_idx)
+    except Exception:
+        # fallback to column C if anything goes wrong
+        col_letter = 'C'
+    cell = f"{col_letter}{row_index+2}"
+    try:
+        sheets_service.spreadsheets().values().update(
+            spreadsheetId=SPREADSHEET_ID,
+            range=cell,
+            valueInputOption="RAW",
+            body={"values": [[status]]}
+        ).execute()
+    except Exception as e:
+        print(f"⚠️ Failed to update sheet status at {cell}: {e}")
 
 def process_emails():
+    print("🚀 Starting email automation...")
     sheets_service, gmail_service = auth_google_services()
     df, pending_rows = get_pending_rows(sheets_service)
+    print(f"✅ Loaded sheet with {len(df)} rows. Pending rows: {len(pending_rows)}")
     if pending_rows.empty:
         print("No pending rows found.")
         return "No pending rows found."
     for idx, row in pending_rows.iterrows():
-        name, email = row['Name'], row['Email']
+        name, email = row.get('Name', ''), row.get('Email', '')
+        print(f"📧 Sending email to: {email} ({name})")
         success = send_email(gmail_service, name, email)
         update_status(sheets_service, df, idx, "Completed" if success else "Error")
         time.sleep(2)
+    print("🎉 Email automation complete.")
     return "Email automation run complete."
 
 # ---- Cloud Function entry point ----
-def send_emails(request):
-    return process_emails()
+# def send_emails(request):
+#     # Cloud Function entry: run automation and return a simple JSON-like dict
+#     result = process_emails()
+#     return {"status": "ok", "message": result}
+
+
+if __name__ == "__main__":
+    process_emails()
