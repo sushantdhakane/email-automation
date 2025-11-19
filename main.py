@@ -180,7 +180,7 @@ Password for the doc - Fundus</p>
         try:
             sender_email = gmail_service.users().getProfile(userId="me").execute().get("emailAddress")
         except Exception:
-            sender_email = "unknown@sender.com"
+            sender_email = "sushantdhakane23@gmail.com"
 
         # Register email with tracker (now includes sender_email)
         try:
