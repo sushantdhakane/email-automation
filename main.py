@@ -86,6 +86,10 @@ def auth_google_services():
     gmail_service = build('gmail', 'v1', credentials=creds)
     return sheets_service, gmail_service
 
+def get_sender_email(gmail_service):
+    profile = gmail_service.users().getProfile(userId="me").execute()
+    return profile.get("emailAddress")
+
 def get_pending_rows(sheets_service):
     result = sheets_service.spreadsheets().values().get(
         spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME
@@ -172,12 +176,18 @@ Password for the doc - Fundus</p>
         result = gmail_service.users().messages().send(userId="me", body={'raw': raw_message}).execute()
         gmail_message_id = result.get('id', None)
 
-        # Register this email with the tracker
+        # Identify sender email
+        try:
+            sender_email = gmail_service.users().getProfile(userId="me").execute().get("emailAddress")
+        except Exception:
+            sender_email = "unknown@sender.com"
+
+        # Register email with tracker (now includes sender_email)
         try:
             requests.post(f"{TRACKER_BASE}/_register_send", json={
                 "track_id": track_id,
                 "recipient_email": to_email,
-                "subject": EMAIL_SUBJECT,
+                "sender_email": sender_email,
                 "gmail_message_id": gmail_message_id
             }, timeout=5)
         except Exception as tracker_err:
