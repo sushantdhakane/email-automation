@@ -235,10 +235,18 @@ def process_emails():
         print("No pending rows found.")
         return "No pending rows found."
     for idx, row in pending_rows.iterrows():
-        name, email = row.get('Name', ''), row.get('Email', '')
-        print(f"📧 Sending email to: {email} ({name})")
-        success = send_email(gmail_service, name, email)
-        update_status(sheets_service, df, idx, "Completed" if success else "Error")
+        name = row.get('Name', '')
+        email_cell = row.get('Email', '')
+
+        # Split multiple emails
+        emails = [e.strip() for e in email_cell.split(",") if e.strip()]
+
+        for email in emails:
+            print(f"📧 Sending email to: {email} ({name})")
+            success = send_email(gmail_service, name, email)
+            time.sleep(2)  # rate limit safety
+
+        update_status(sheets_service, df, idx, "Completed") if success else "Error")
         time.sleep(2)
     print("🎉 Email automation complete.")
     return "Email automation run complete."
