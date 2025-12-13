@@ -16,9 +16,9 @@ load_dotenv()
 # --- CONFIG ---
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 RANGE_NAME = os.getenv("RANGE_NAME", "Sheet1!A:C")
-ATTACHMENT_PATH = os.getenv("ATTACHMENT_PATH", "test.pdf")
+ATTACHMENT_PATH = os.getenv("ATTACHMENT_PATH", "SuperLoopz_ AI Native Universal Commerce PRD.pdf")
 FIXED_CC = os.getenv("FIXED_CC")
-EMAIL_SUBJECT = os.getenv("EMAIL_SUBJECT", "Superloopz - Universal Commerce Platform Opportunity")
+EMAIL_SUBJECT = os.getenv("EMAIL_SUBJECT", "Back us up — Together, let’s close the $60T gap in global commerce")
 
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
@@ -129,27 +129,33 @@ def send_email(gmail_service, name, to_email):
     body = f"""<html><body>
 <p>Dear {name},</p>
 
-<p>Here’s a paradox: a manufacturer knows exactly how much it shipped to a distributor — but once the truck leaves the warehouse, visibility ends. Did those products sell out in San Francisco/Mumbai but stall in Los Angeles/Delhi? Did one retailer run dry in a week while another sat on stock? Most manufacturers don’t know, because their systems stop at the distributor’s door.</p>
+<p>There are two kinds of people in commerce today.</p>
 
-<p>That blind spot is enormous. It drives overproduction in some markets, empty shelves in others, wasted marketing spend, and billions in lost revenue.</p>
+<p>On one side, established manufacturers, distributors, and retailers struggle with fragmented systems across online, offline, B2B, and D2C channels. On the other, a college student at 2 AM designs a T-shirt and then spends hours just figuring out how to sell it online.</p>
 
-<p>And it’s not just commerce. Last year, airlines lost an estimated $35 billion to delays, cancellations, and missed connections not because planes failed, but because systems didn’t talk to each other. Millions of passengers were double-booked or stranded because one database showed “available” while another showed “sold.”</p>
+<p><strong>Superloopz bridges both worlds.</strong></p>
 
-<p>Commerce is suffering from the same dysfunction.</p>
+<p>We’re building an <strong>AI-native Universal Commerce Platform</strong> — a SaaS operating system that unifies and automates every channel a business sells through. Powered by autonomous AI agents, Superloopz learns from every transaction to automate catalog creation, inventory synchronization, pricing, demand forecasting, and partner coordination.</p>
 
-<p>At Superloopz, we’re building the Universal Commerce Platform to solve this. A SaaS backbone that unifies B2C, B2B/B2B2B, and service channels into one real-time dashboard. Manufacturers see beyond distributors into retailers, marketplaces, and even end-consumer demand. On top of this, we’re integrating agentic commerce capabilities AI agents that automate catalog updates, generate personalized marketing, and optimize demand forecasting. These agents reduce manual work and act proactively, helping businesses scale smarter. From D2C brands to manufacturers, hotels, and QSRs, our system enables anyone to sell anything, anywhere, through any channel efficiently and intelligently.</p>
+<p>A large enterprise can connect its entire distributor and retail network into a single intelligent system. At the same time, an individual creator can upload a product image, and our AI generates studio-quality visuals, builds a storefront, and lists the product across marketplaces like Amazon and eBay in one click.</p>
 
-<p>This has never been built end-to-end. Commerce today is fragmented across marketplaces, distributors, and aggregators. Yet the demand for unification is massive. Global B2B e-commerce alone will reach $61.9T by 2030, and brands are ready to pay millions for visibility because it directly protects their revenue.</p>
+<p>We’ve validated this need with <strong>20+ brands</strong> across FMCG, pharma, jewelry, and quick commerce, with <strong>6 ready for early access</strong>. The opportunity is massive: global B2B e-commerce is ~$32T today and projected to reach <strong>$61.9T by 2030</strong>, India’s D2C market is expected to hit <strong>$61B by 2027</strong>, and U.S. retail e-commerce already exceeds <strong>$1.3T</strong>. Yet no platform exists that truly bridges B2C and B2B end-to-end.</p>
 
-<p>I’d love to share how we’re tackling this opportunity and why we believe this will be the backbone of global commerce in the next decade. I’ve attached a detailed PRD with stats and real-world examples to give you a deeper view. Would you be open to a quick conversation?</p>
+<p>Commerce remains deeply fragmented across marketplaces, distributors, and aggregators. Brands are willing to pay millions for real-time visibility and control because it directly protects revenue — and that’s the gap Superloopz is built to close.</p>
 
-<p>Best,<br>
+<p>I’d love to share how we’re tackling this and why we believe Superloopz can become the backbone of global commerce over the next decade. I’ve attached a detailed PRD with data and real-world examples for deeper context. Would you be open to a brief conversation?</p>
+
+<p>Best regards,<br>
 Praharsha<br>
 Co-Founder, Superloopz<br>
-+1 949-755-9016 | <a href="https://www.linkedin.com/in/praharsha-nelaturi/">My LinkedIn</a> | <a href="https://www.linkedin.com/in/chaitanyasai-g/">Co-founder&apos;s LinkedIn</a></p>
++1 949-755-9016 | 
+<a href="https://www.linkedin.com/in/praharsha-nelaturi/">My LinkedIn</a> | 
+<a href="https://www.linkedin.com/in/chaitanyasai-g/">Co-founder&apos;s LinkedIn</a>
+</p>
 
-<p><a href="https://Superloopz.com">Superloopz.com</a><br>
-Password for the doc - Fundus</p>
+<p>
+<a href="https://superloopz.short.gy/Fundpromo">superloopz.short.gy/Fundpromo</a>
+</p>
 </body></html>"""
 
     # Embed tracking pixel into the email body
@@ -180,7 +186,7 @@ Password for the doc - Fundus</p>
         try:
             sender_email = gmail_service.users().getProfile(userId="me").execute().get("emailAddress")
         except Exception:
-            sender_email = "sushantdhakane23@gmail.com"
+            sender_email = "pnelatur@uci.edu"
 
         # Register email with tracker (now includes sender_email)
         try:
@@ -188,6 +194,7 @@ Password for the doc - Fundus</p>
                 "track_id": track_id,
                 "recipient_email": to_email,
                 "sender_email": sender_email,
+                "subject": EMAIL_SUBJECT,
                 "gmail_message_id": gmail_message_id
             }, timeout=5)
         except Exception as tracker_err:
