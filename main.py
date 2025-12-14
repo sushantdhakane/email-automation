@@ -154,7 +154,7 @@ Co-Founder, Superloopz<br>
 </p>
 
 <p>
-<a href="https://superloopz.short.gy/Fundpromo">superloopz.short.gy/Fundpromo</a>
+<a href="https://superloopz.short.gy/Fundpromo">Superloopz.com</a>
 </p>
 </body></html>"""
 
