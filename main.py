@@ -246,7 +246,7 @@ def process_emails():
             success = send_email(gmail_service, name, email)
             time.sleep(2)  # rate limit safety
 
-        update_status(sheets_service, df, idx, "Completed") if success else "Error")
+        update_status(sheets_service, df, idx, "Completed" if success else "Error")
         time.sleep(2)
     print("🎉 Email automation complete.")
     return "Email automation run complete."
