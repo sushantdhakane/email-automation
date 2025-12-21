@@ -190,7 +190,7 @@ Co-Founder, Superloopz<br>
 
         # Register email with tracker (now includes sender_email)
         try:
-            requests.post(f"{TRACKER_BASE}/_register_send", json={
+            requests.post(f"{TRACKER_BASE}/register_send", json={
                 "track_id": track_id,
                 "recipient_email": to_email,
                 "sender_email": sender_email,
